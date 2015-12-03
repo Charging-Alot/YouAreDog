@@ -1,0 +1,22 @@
+I am cat 
+-> You are cat
+I am dog
+-> You are dog
+What am I?
+-> I not know
+What are you?
+-> I am machine
+I am cat. What am I?
+-> You are cat.
+I am dog. What am I?
+-> You are dog.
+What am I?
+-> You are dog
+I am not cat
+-> You are dog
+I am not dog
+You are cat
+What am I?
+-> You are cat
+
+[What, dog, cat, not, are, machine, ?, you, am, I, ., know, <end>]
