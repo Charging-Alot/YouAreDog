@@ -1,32 +1,33 @@
 var synaptic = require('./synaptic/src/synaptic.js')
-var words = ["What", "dog", "cat", "not", "are", "machine", "?", "you", "am", "i", ".", "know", "<end>", "<start>"]
-var dictionary = {
-  "what": 0,
-  "dog": 1,
-  "cat": 2,
-  "not": 3,
-  "are": 4,
-  "machine": 5,
-  "?": 6,
-  "you": 7,
-  "am": 8,
-  "i": 9,
-  ".": 10,
-  "know": 11,
-  "<end>": 12,
-  "<start>": 13
-};
-var puncs = ["!", ",", "?", "."];
+var script = require('./flashy.js');
+var fs = require('fs');
 
-var network = new synaptic.Architect.LSTM(14, 14, 14, 14, 14, 14);
+var dictionary = {};
+var words = [];
+
+var count = 0;
+
+
+script.forEach(function(line) {
+  var words = line.split(' ');
+  for (var i = 0; i < words.length; i++) {
+    if (!dictionary[words[i].toLowerCase()]) {
+      dictionary[words[i].toLowerCase()] = count;
+      count++;
+    }
+  }
+});
+
+dictionary['<start>'] = ++count;
+dictionary['<end>'] = ++count;
+
+for (var key in dictionary) {
+  words.push(key);
+}
+
+var network = new synaptic.Architect.LSTM(count, count, count);
 
 function vectorBuilder(sentence) {
-  puncs.forEach(function(puncy) {
-    var idx = sentence.indexOf(puncy);
-    if (idx !== -1) {
-      sentence = sentence.slice(0, idx) + ' ' + sentence.slice(idx);
-    }
-  });
   var result = [];
   var newSentence = sentence.split(" ");
   for (var i = 0; i < newSentence.length; i++) {
@@ -35,49 +36,7 @@ function vectorBuilder(sentence) {
   // result.push(dictionary['<start>']);
   return result;
 };
-var trainingData = ["I am cat.",
-  "You are cat.",
-  "I am dog.",
-  "You are dog.",
-  "What am I?",
-  "I not know.",
-  "What are you?",
-  "I am machine.",
-  "I am cat. What am I?",
-  "You are cat.",
-  "I am dog. What am I?",
-  "You are dog.",
-  "What am I?",
-  "You are dog.",
-  "I am not cat.",
-  "You are dog.",
-  "I am not dog.",
-  "You are cat.",
-  "What am I?",
-  "You are cat."
-];
-// var trainingData = [
-//   "I am cat.",
-//   "You is cat.",
-//   "I am dog.",
-//   "You is dog.",
-//   "What am I?",
-//   "You not know.",
-//   "What are you?",
-//   "I am machine.",
-//   "I am cat. What am I?",
-//   "You is cat.",
-//   "I am dog. What am I?",
-//   "You is dog.",
-//   "What am I?",
-//   "You are dog.",
-//   "I am not cat.",
-//   "You are dog.",
-//   "I am not dog.",
-//   "You is machine.",
-//   "What am I?",
-//   "You are cat dog."
-// ];
+
 var allZeros = []
 for (var i = 0; i < words.length; i++) {
   allZeros.push(0);
@@ -119,8 +78,8 @@ var train = function() {
       // network.activate(input);
       // network.propagate(0.1, output);
     }
-    console.log('original: ', trainingData[trainingIndex + 1])
-      // console.log('poop:', trainingSet)
+    //console.log('original: ', trainingData[trainingIndex + 1])
+    // console.log('poop:', trainingSet)
 
 
     // network.trainer.train(trainingSet, {
@@ -182,4 +141,6 @@ var talk = function() {
   // for (var j = 0; j < 10; j++) {
 train();
 // }
-console.log(talk());
+fs.write('./poop.txt', network.toJSON(), function(err, data) {
+  console.log(talk());
+});
