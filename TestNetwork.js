@@ -83,7 +83,7 @@ for (var i = 0; i < words.length; i++) {
   allZeros.push(0);
 }
 
-var train = function() {
+var trainCollection = function() {
   var trainingIndex = 0;
   while (trainingIndex < trainingData.length) {
     var unsupInput = vectorBuilder(trainingData[trainingIndex]);
@@ -130,6 +130,56 @@ var train = function() {
     trainingIndex += 2;
   }
 };
+
+var indexToInputVector = function (sentenceVector) {
+  var resArr = []
+  for(var i = 0; i < sentenceVector.length; i++) {
+    var inputVector = allZeros.slice();
+    inputVector[sentenceVector[i]] = 1;
+    resArr.push(inputVector);
+  }
+  return resArr;
+}
+
+var matSub = function (vec1, vec2) {
+  if( vec1.length !== vec2.length) {
+    return null;
+  } else {
+    var resVec = [];
+    for(var i = 0; i < vec1.length; i++) {
+      resVec.push(vec1[i] - vec2[i]);
+    }
+    return resVec;
+  }
+}
+
+var trainCalRes = function (call, response) {
+  var callVect = vectorBuilder(call);
+  var callWordVects = indexToInputVector(callVect);
+  var resVect = vectorBuilder(response);
+  var resWordVects = indexToInputVector(resVect);
+
+  for(var i = 0; i < resWordVects.length -1; i++) {
+    for(var j = 0; j < callWordVects.length; j++) {
+      network.activate(callWordVects[j]);
+    }
+    var outputs = [];
+    for(var k = 0; k < i; k++) {
+      outputs.push(network.activate(resWordVects[k]));
+    }
+    var output = network.activate(resWordVects[i]);
+    network.propagate(0.1, resWordVects[i+1]);
+    for(var x = i - 1; x >= 0; x++) {
+      var guess = matSub(outputs[x], network.getErrors());
+      if(guess === null) {
+        console.log('I CAN"T MATH');
+      }
+      network.propagate(0.1, guess);
+    }
+  }
+
+
+}
 
 function translate(vector) {
   // console.log('fuck : ', vector)
