@@ -1,135 +1,155 @@
-var synaptic = require('./synaptic/src/synaptic.js')
-var words = ["What", "dog", "cat", "not", "are", "machine", "?", "you", "am", "i", ".", "know", "<end>", "<start>"]
-var dictionary = {
-  "what": 0,
-  "dog": 1,
-  "cat": 2,
-  "not": 3,
-  "are": 4,
-  "machine": 5,
-  "?": 6,
-  "you": 7,
-  "am": 8,
-  "i": 9,
-  ".": 10,
-  "know": 11,
-  "<end>": 12,
-  "<start>": 13
-};
+var synaptic = require('../synaptic/src/synaptic.js')
+// var words = ["What", "dog", "cat", "not", "are", "machine", "?", "you", "am", "i", ".", "know", "<end>", "<start>"]
+// var dictionary = {
+//   "what": 0,
+//   "dog": 1,
+//   "cat": 2,
+//   "not": 3,
+//   "are": 4,
+//   "machine": 5,
+//   "?": 6,
+//   "you": 7,
+//   "am": 8,
+//   "i": 9,
+//   ".": 10,
+//   "know": 11,
+//   "<end>": 12,
+//   "<start>": 13
+// };
+
+var trainingData = [
+  'you am machine .',
+  'i am machine .',
+  'i am cat .',
+  'you am cat .',
+  'he am machine .',
+  'he am machine .',
+  'i am dog .',
+  'you am dog .',
+  'she am machine .',
+  'she am machine .',
+];
+
+var trainingData2 = ["I am cat .",
+  "you are cat .",
+  "i am dog .",
+  "you are dog .",
+  "what am I ?",
+  "i not know .",
+  "what are you ?",
+  "i am machine .",
+  "i am cat. What am I ?",
+  "you are cat .",
+  "i am dog. What am I ?",
+  "you are dog .",
+  "what am I ?",
+  "you are dog .",
+  "i am not cat .",
+  "you are dog .",
+  "i am not dog .",
+  "you are cat .",
+  "what am I ?",
+  "you are cat ."
+];
+
+trainingData = trainingData.concat(trainingData2);
+
+var trainingData = ['I am tall',
+                      'I am short',
+                      'the sky is blue',
+                      'the moon is round']
+
+var shuf = function (trainingData) {
+  var collection = [];
+  for(var j = 0; j <trainingData.length; j++) {
+    if(j % 2 === 0) {
+      collection.push([trainingData[j], trainingData[j+1]]);
+    }
+  }
+
+  for(var i = 0; i < collection.length; i+=1) {
+    var temp = collection[i];
+    var next = Math.floor(Math.random()*collection.length)
+    collection[i] = collection[next];
+    collection[next] = temp;
+  }
+
+  var res = [];
+  for(var k = 0; k < collection.length; k++) {
+    res = res.concat(collection[k]);
+  }
+
+  console.log(res)
+  return res;
+}
+
+var words = [];
+var dictionary = {};
+
+for(var i = 0; i < trainingData.length; i++) {
+  var sentence = trainingData[i].split(' ');
+  for(var j = 0; j < sentence.length; j++) {
+    if(!dictionary[sentence[j]]) {
+      words.push(sentence[j]);
+      dictionary[sentence[j]] = words.length - 1;
+    }
+  }
+}
+words.push('<start>');
+dictionary['<start>'] = words.length - 1;
+words.push('<end>');
+dictionary['<end>'] = words.length - 1;
+
 var puncs = ["!", ",", "?", "."];
 
-var network = new synaptic.Architect.LSTM(14, 14, 14, 14, 14, 14);
+var network = new synaptic.Architect.LSTM(words.length, words.length, words.length);
 
-function vectorBuilder(sentence) {
-  puncs.forEach(function(puncy) {
-    var idx = sentence.indexOf(puncy);
-    if (idx !== -1) {
-      sentence = sentence.slice(0, idx) + ' ' + sentence.slice(idx);
-    }
-  });
-  var result = [];
-  var newSentence = sentence.split(" ");
-  for (var i = 0; i < newSentence.length; i++) {
-    result.push(dictionary[newSentence[i].toLowerCase()]);
-  }
-  // result.push(dictionary['<start>']);
-  return result;
-};
-var trainingData = ["I am cat.",
-  "You are cat.",
-  "I am dog.",
-  "You are dog.",
-  "What am I?",
-  "I not know.",
-  "What are you?",
-  "I am machine.",
-  "I am cat. What am I?",
-  "You are cat.",
-  "I am dog. What am I?",
-  "You are dog.",
-  "What am I?",
-  "You are dog.",
-  "I am not cat.",
-  "You are dog.",
-  "I am not dog.",
-  "You are cat.",
-  "What am I?",
-  "You are cat."
-];
-// var trainingData = [
-//   "I am cat.",
-//   "You is cat.",
-//   "I am dog.",
-//   "You is dog.",
-//   "What am I?",
-//   "You not know.",
-//   "What are you?",
-//   "I am machine.",
-//   "I am cat. What am I?",
-//   "You is cat.",
-//   "I am dog. What am I?",
-//   "You is dog.",
-//   "What am I?",
-//   "You are dog.",
-//   "I am not cat.",
-//   "You are dog.",
-//   "I am not dog.",
-//   "You is machine.",
-//   "What am I?",
-//   "You are cat dog."
-// ];
 var allZeros = []
 for (var i = 0; i < words.length; i++) {
   allZeros.push(0);
 }
 
-var trainCollection = function() {
-  var trainingIndex = 0;
-  while (trainingIndex < trainingData.length) {
-    var unsupInput = vectorBuilder(trainingData[trainingIndex]);
-    // unsupInput.shift(dictionary['<start>'])
-    unsupInput.push(dictionary['<start>'])
-      // for (var i = 0; i < unsupInput.length; i++) {
-    for (var i = 0; i < unsupInput.length - 1; i++) {
-      input = allZeros.slice();
-      input[unsupInput[i]] = 1;
-      network.activate(input);
-    }
-    var trainingSet = [];
-    var supInput = vectorBuilder(trainingData[trainingIndex + 1]);
-    supInput.push(dictionary['<end>'])
-    input = allZeros.slice();
-    input[unsupInput.length - 1] = 1;
-    output = allZeros.slice();
-    output[supInput[0]] = 1;
-    trainingSet.push({
-      'input': input,
-      'output': output
-    });
-    // network.activate(input);
-    // network.propagate(0.1, output);
-    for (var i = 0; i < supInput.length - 1; i++) {
-      input = output
-      output = allZeros.slice();
-      output[supInput[i + 1]] = 1;
-      trainingSet.push({
-        'input': input,
-        'output': output
-      });
-      // network.activate(input);
-      // network.propagate(0.1, output);
-    }
-    console.log('original: ', trainingData[trainingIndex + 1])
-      // console.log('poop:', trainingSet)
-
-
-    // network.trainer.train(trainingSet, {
-    //   shuffle: true
-    // });
-    network.trainer.train(trainingSet);
-    trainingIndex += 2;
+function vectorBuilder(sentence, isRes) {
+  // puncs.forEach(function(puncy) {
+  //   var idx = sentence.indexOf(puncy);
+  //   if (idx !== -1) {
+  //     sentence = sentence.slice(0, idx) + ' ' + sentence.slice(idx);
+  //   }
+  // });
+  if(isRes) {
+    sentence = '<start> ' + sentence + ' <end>';
   }
+  var result = [];
+  var newSentence = sentence.split(" ");
+  for (var i = 0; i < newSentence.length; i++) {
+    var vector = allZeros.slice();
+    vector[dictionary[newSentence[i]]] = 1;
+    result.push(vector);
+  }
+  // result.push(dictionary['<start>']);
+  return result;
 };
+
+var averageOfArr = function (array) {
+  var result = 0;
+  for(var i = 0; i < array.length; i++) {
+    result += array[i];
+  }
+  return result/array.length;
+}
+
+var trainCollection = function(trainingRate, trainingData) {
+  trainingData = shuf(trainingData);
+  for(var i = 0; i < trainingData.length; i+=2) {
+    var call = trainingData[i];
+    var response = trainingData[i+1];
+    counter = 0;
+    // do {
+      trainCalRes(call, response, trainingRate);
+    // } while(++counter < 10)//averageOfArr(network.layers.output.getErrors()) >= 0.1);
+    // console.log(averageOfArr(network.layers.output.getErrors()))
+  }
+}
 
 var indexToInputVector = function (sentenceVector) {
   var resArr = []
@@ -142,7 +162,8 @@ var indexToInputVector = function (sentenceVector) {
 }
 
 var matSub = function (vec1, vec2) {
-  if( vec1.length !== vec2.length) {
+  if(vec1.length !== vec2.length) {
+    console.log('I CAN"T MATH');
     return null;
   } else {
     var resVec = [];
@@ -153,41 +174,36 @@ var matSub = function (vec1, vec2) {
   }
 }
 
-var trainCalRes = function (call, response) {
-  var callVect = vectorBuilder(call);
-  var callWordVects = indexToInputVector(callVect);
-  var resVect = vectorBuilder(response);
-  var resWordVects = indexToInputVector(resVect);
+var activateSequence = function (vectorArr) {
+  var outputs = []
+  for(var i = 0; i < vectorArr.length; i++) {
+    var output = network.activate( vectorArr[i] )
+    outputs.push( output );
+  }
+  return outputs
+}
 
-  for(var i = 0; i < resWordVects.length -1; i++) {
-    for(var j = 0; j < callWordVects.length; j++) {
-      network.activate(callWordVects[j]);
-    }
-    var outputs = [];
-    for(var k = 0; k < i; k++) {
-      outputs.push(network.activate(resWordVects[k]));
-    }
-    var output = network.activate(resWordVects[i]);
-    network.propagate(0.1, resWordVects[i+1]);
-    for(var x = i - 1; x >= 0; x++) {
+var trainCalRes = function (call, response, rate) {
+  var callVects = vectorBuilder(call, false);
+  var resVects = vectorBuilder(response, true);
+  for(var i = 0; i < resVects.length-1; i++) {
+    activateSequence(callVects);
+
+    var outputs = activateSequence(resVects.slice(0,i));
+
+    var output = network.activate(resVects[i]);
+    network.propagate(rate, resVects[i+1]);
+
+    for(var x = i - 1; x >= 0; x--) {
       var guess = matSub(outputs[x], network.getErrors());
-      if(guess === null) {
-        console.log('I CAN"T MATH');
-      }
-      network.propagate(0.1, guess);
+      network.propagate(rate/2, guess);
     }
   }
-
-
 }
 
 function translate(vector) {
-  // console.log('fuck : ', vector)
   var val = Math.max.apply(null, vector);
   var index = vector.indexOf(val);
-  // vector[index] = -1;
-  // val = Math.max.apply(null, vector);
-  index = vector.indexOf(val);
   if (index !== -1) {
     return words[index];
   } else {
@@ -195,41 +211,50 @@ function translate(vector) {
   }
 }
 
-var talk = function() {
-    var trainingIndex = 0;
-    var resArr = []
-    while (trainingIndex < trainingData.length) {
-      var unsupInput = vectorBuilder(trainingData[trainingIndex]);
-      unsupInput.shift(dictionary['<start>']);
-      for (var i = 0; i < unsupInput.length - 1; i++) {
-        input = allZeros.slice();
-        input[unsupInput[i]] = 1;
-        network.activate(input);
-      }
-      var resultVectors = []
-
-      var input = allZeros.slice();
-      input[unsupInput[unsupInput.length - 1]] = 1;
-      var count = 0;
-      var output = allZeros.slice();
-      var notend = false;
-      while (!(
-          output.indexOf(Math.max.apply(null, output)) === words.length - 2 ||
-          output.indexOf(Math.max.apply(null, output)) === 6 ||
-          output.indexOf(Math.max.apply(null, output)) === 10
-        ) && count < 4) {
-        output = network.activate(input);
-        console.log(output)
-        resultVectors.push(translate(output));
-        input = output;
-        count++;
-      }
-      trainingIndex += 2;
-      resArr.push(resultVectors.join(' '));
-    }
-    return resArr;
+function translateArr(vecArr) {
+  resArr = [];
+  for(var i = 0; i < vecArr.length; i++) {
+    resArr.push(translate(vecArr[i]))
   }
-  // for (var j = 0; j < 10; j++) {
-train();
-// }
-console.log(talk());
+  console.log(resArr);
+  return resArr;
+}
+
+var respond = function (call) {
+  callVects = vectorBuilder(call, false);
+
+  var resArr = [];
+
+  activateSequence(callVects);
+
+  var output = network.activate(vectorBuilder('<start>', false)[0])
+
+  resArr.push(translate(output));
+
+  var counter = 0;
+
+  while(translate(output) !== '<end>' && counter <= 3) {
+    var input = output;
+    output = network.activate(input);
+    resArr.push(translate(output));
+    counter++;
+  }
+
+  return resArr.join(' ');
+
+}
+
+var testResponse = function (trainingData) {
+  for(var i = 0; i < trainingData.length; i += 2) {
+    console.log(trainingData[i])
+    console.log(respond(trainingData[i]))
+  }
+}
+var rate = 0.25
+for(var y = 0; y < 25; y++) {
+  trainCollection(rate, trainingData);
+  rate /= 2
+}
+
+testResponse(trainingData);
+// console.log(respond('he am cat'))
